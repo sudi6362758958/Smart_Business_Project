@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Admin Dashboard</h3>
+    <a href="{% url 'accounts:register_business' %}" class="btn btn-outline-secondary btn-sm">Register Business</a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} small">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="mb-3">
+    <strong>Total:</strong> {{ total }} &nbsp; | &nbsp;
+    <strong>Pending:</strong> {{ pending_count }} &nbsp; | &nbsp;
+    <strong>Approved:</strong> {{ approved_count }}
+  </div>
+
+  <div class="table-responsive mb-4">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Business</th>
+          <th>Owner</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for business in businesses %}
+          {% with bid=business.pk|default:business.id %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+
+            <td>
+              {% if bid %}
+                <a href="{% url 'accounts:business_detail' bid %}">{{ business.name }}</a>
+              {% else %}
+                {{ business.name }}
+              {% endif %}
+            </td>
+
+            <td>
+              {% if business.owner_name %}
+                {{ business.owner_name }}
+              {% elif business.owner %}
+                {{ business.owner.get_full_name|default:business.owner.username }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>
+              {% if business.owner_email %}
+                {{ business.owner_email }}
+              {% elif business.email %}
+                {{ business.email }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>
+              {% if business.is_approved %}
+                <span class="badge bg-success text-white">Approved</span>
+              {% elif business.status == 'pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% else %}
+                <span class="badge bg-secondary text-white">Rejected</span>
+              {% endif %}
+            </td>
+
+            <td>{{ business.created_at|date:"Y-m-d H:i" }}</td>
+
+            <td class="text-end">
+              {% if bid %}
+                <a href="{% url 'accounts:business_detail' bid %}" class="btn btn-sm btn-outline-primary">View</a>
+                <a href="{% url 'accounts:edit_business' bid %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+
+                <!-- DELETE: proper POST form with CSRF -->
+                <form method="post" action="{% url 'accounts:delete_business' bid %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button
+                    type="submit"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Are you sure you want to permanently delete this business? This action cannot be undone.');"
+                  >
+                    Delete
+                  </button>
+                </form>
+
+                {% if business.status == 'pending' %}
+                  <form method="post" action="{% url 'accounts:approve_business' bid %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve business & activate owner account?');">Approve</button>
+                  </form>
+
+                  <form method="post" action="{% url 'accounts:reject_business' bid %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reject business?');">Reject</button>
+                  </form>
+                {% endif %}
+              {% else %}
+                <span class="text-muted small">No actions</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td colspan="7" class="text-center text-muted">No businesses found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}
+  Invoice List
+{% endblock %}
+
+{% block content %}
+  <div class="card p-3">
+    <h4 class="mb-3">Invoices for {{ business.name }}</h4>
+
+    <a href="{% url 'sales:invoice_create' %}" class="btn btn-primary mb-3">+ New Invoice</a>
+
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Invoice No</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Paid</th>
+          <th>Status</th>
+          <th>Remaining</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+          <tr>
+            <td>{{ inv.invoice_no }}</td>
+            <td>{{ inv.date }}</td>
+            <td>{{ inv.customer }}</td>
+            <td>{{ inv.total }}</td>
+            <td>{{ inv.amount_paid }}</td>
+
+            <td>
+              {% if inv.status == 'paid' %}
+                <span class="badge bg-success">Paid</span>
+              {% elif inv.status == 'partial' %}
+                <span class="badge bg-warning text-dark">Partial</span>
+              {% elif inv.status == 'pending' %}
+                <span class="badge bg-danger">Pending</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ inv.status }}</span>
+              {% endif %}
+            </td>
+            <td>{{ inv.remaining_amount }}</td>
+            <td>
+              <a class="btn btn-sm btn-info" href="{% url 'sales:invoice_detail' inv.pk %}">View</a>
+              <a class="btn btn-sm btn-warning" href="{% url 'sales:invoice_edit' inv.pk %}">Edit</a>
+               <form action="{% url 'sales:invoice_delete' inv.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Are you sure you want to delete Invoice {{ inv.invoice_no }}?');">Delete</button>
+                </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
