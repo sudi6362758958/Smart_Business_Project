@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Delete Expense</h3>
+    <p>Are you sure you want to delete:</p>
+
+    <ul>
+        <li><strong>{{ expense.name }}</strong></li>
+        <li>₹ {{ expense.amount }}</li>
+        <li>{{ expense.date }}</li>
+    </ul>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button class="btn btn-danger" type="submit">Yes, delete</button>
+        <a class="btn btn-secondary" href="{% url 'expenses:expense_list' %}">Cancel</a>
+    </form>
+</div>
+{% endblock %}

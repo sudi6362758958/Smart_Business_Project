@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}{% if edit %}Edit Business{% else %}Register Business{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-start" style="min-height:70vh;">
+  <div class="card shadow-sm p-4" style="width:100%; max-width:720px; border-radius:12px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h4 class="mb-0">{% if edit %}Edit Business{% else %}Register Business{% endif %}</h4>
+        <small class="text-muted">Create your business & owner login account</small>
+      </div>
+      <div>
+        {# Guarded link: only build owner_dashboard URL when business and id exist #}
+        {% if business and business.id %}
+          <a href="{% url 'accounts:owner_dashboard' business.id %}" class="btn btn-outline-secondary btn-sm">Back</a>
+        {% else %}
+          {# Fallback to site root "/" when there's no named 'home' URL #}
+          <a href="/" class="btn btn-outline-secondary btn-sm">Back</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} small">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Owner Account Section -->
+      <h5 class="mt-2 mb-3">Owner Login Credentials</h5>
+
+      <div class="row g-3">
+
+        <!-- ✅ OWNER NAME FIELD -->
+        <div class="col-md-6">
+          <label class="form-label">Owner Full Name</label>
+          {% render_field form.owner_name class="form-control" placeholder="e.g. John Doe" %}
+          {% if form.owner_name.errors %}
+            <div class="text-danger small mt-1">{{ form.owner_name.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Owner Email (Login Email)</label>
+          {% render_field form.owner_email class="form-control" placeholder="owner@example.com" %}
+          {% if form.owner_email.errors %}
+            <div class="text-danger small mt-1">{{ form.owner_email.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Password</label>
+          {% render_field form.password class="form-control" type="password" placeholder="Enter password" %}
+          {% if form.password.errors %}
+            <div class="text-danger small mt-1">{{ form.password.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Confirm Password</label>
+          {% render_field form.confirm_password class="form-control" type="password" placeholder="Re-enter password" %}
+          {% if form.confirm_password.errors %}
+            <div class="text-danger small mt-1">{{ form.confirm_password.errors|striptags }}</div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <hr class="my-4">
+
+      <!-- Business Info Section -->
+      <h5 class="mb-3">Business Details</h5>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Business Name</label>
+          {% render_field form.name class="form-control" placeholder="e.g. Acme Traders" %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Business Email</label>
+          {% render_field form.email class="form-control" placeholder="business@example.com" %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Phone</label>
+          {% render_field form.phone class="form-control" placeholder="+91 98765 43210" %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">GST / Tax No</label>
+          {% render_field form.gst_number class="form-control" placeholder="GSTIN / Tax ID (optional)" %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Address</label>
+          {% render_field form.address class="form-control" rows="3" placeholder="Full address" %}
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        {# Guarded Cancel link as well #}
+        {% if business and business.id %}
+          <a href="{% url 'accounts:owner_dashboard' business.id %}" class="btn btn-outline-secondary">Cancel</a>
+        {% else %}
+          <a href="/" class="btn btn-outline-secondary">Cancel</a>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary">
+          {% if edit %}Update{% else %}Register Business{% endif %}
+        </button>
+      </div>
+    </form>
+
+    <div class="mt-3 small text-muted">
+      New registrations will be marked as <strong>Pending</strong> and require admin approval.
+    </div>
+  </div>
+</div>
+{% endblock %}
