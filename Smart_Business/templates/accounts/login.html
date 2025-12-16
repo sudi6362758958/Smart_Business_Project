@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+  <div class="card shadow-sm p-4" style="width: 100%; max-width: 420px; border-radius: 12px;">
+
+    <div class="text-center mb-3">
+      <h3 class="fw-bold">Welcome Back</h3>
+      <p class="text-muted small">Login to continue to your dashboard</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- USERNAME (correct floating label fix) -->
+      <div class="form-floating mb-3">
+        {% render_field form.username class="form-control" placeholder="Enter your username" %}
+        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+        {% if form.username.errors %}
+          <div class="text-danger small mt-1">{{ form.username.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <!-- PASSWORD (correct floating label fix) -->
+      <div class="form-floating mb-3">
+        {% render_field form.password class="form-control" placeholder="Enter your password" %}
+        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+        {% if form.password.errors %}
+          <div class="text-danger small mt-1">{{ form.password.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+        Login
+      </button>
+    </form>
+
+    <div class="text-center mt-4">
+      <p class="small text-muted mb-0">
+        Don’t have a business?
+        <a href="{% url 'accounts:register_business' %}" class="text-primary fw-semibold">
+          Register Now
+        </a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

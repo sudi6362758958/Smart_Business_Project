@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin Dashboard - Summary</title>
+    <style>
+      body {
+        font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
+        font-size: 12px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .logo {
+        max-height: 60px;
+      }
+      .title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+      .meta {
+        margin-top: 5px;
+        font-size: 11px;
+      }
+      .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 25px;
+      }
+      .summary-table th,
+      .summary-table td {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        text-align: right;
+      }
+      .summary-table th:first-child,
+      .summary-table td:first-child {
+        text-align: left;
+      }
+      .summary-table th {
+        background: #f0f0f0;
+      }
+      .totals-row {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      {% if logo_url %}
+        <img src="{{ logo_url }}" class="logo" />
+      {% endif %}
+      <div class="title">Admin Dashboard - Summary</div>
+      <div class="meta">
+        Period:
+        {{ start|date:'M d, Y' }}
+        &nbsp;to&nbsp;
+        {{ end|date:'M d, Y' }}<br />
+        Generated at: {{ generated_at }}<br />
+        {% if admin_name %}
+          Admin: {{ admin_name }}
+        {% endif %}
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <tr>
+        <th>Metric</th>
+        <th>Amount</th>
+      </tr>
+      <tr>
+        <td>Total Sales</td>
+        <td>{{ sales_total }}</td>
+      </tr>
+      <tr>
+        <td>Total Purchases</td>
+        <td>{{ purchases_total }}</td>
+      </tr>
+      <tr>
+        <td>Total Expenses</td>
+        <td>{{ expenses_total }}</td>
+      </tr>
+      <tr class="totals-row">
+        <td>Total Profit</td>
+        <td>{{ profit }}</td>
+      </tr>
+    </table>
+  </body>
+</html>
