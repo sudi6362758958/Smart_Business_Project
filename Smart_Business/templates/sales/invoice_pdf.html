@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page {
+        size: A4;
+        margin: 35mm 15mm 35mm 15mm;
+
+        @frame header_frame {
+          left: 15mm;
+          right: 15mm;
+          top: 10mm;
+          height: 20mm;
+        }
+
+        @frame footer_frame {
+          left: 15mm;
+          right: 15mm;
+          bottom: 10mm;
+          height: 20mm;
+        }
+      }
+
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 12px;
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 5px;
+        font-size: 11px;
+      }
+
+      th {
+        background: #eee;
+      }
+
+      .box {
+        border: 1px solid #000;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+
+      .right {
+        text-align: right;
+      }
+
+      .status {
+        padding: 2px 6px;
+        font-size: 10px;
+        color: #fff;
+      }
+
+      .paid {
+        background: green;
+      }
+      .pending {
+        background: red;
+      }
+      .partial {
+        background: orange;
+        color: #000;
+      }
+
+      #header {
+        -pdf-frame-content: header_frame;
+        text-align: center;
+        font-size: 18px;
+        background-color: rgb(226, 97, 11);
+      }
+
+      #footer {
+        -pdf-frame-content: footer_frame;
+        text-align: center;
+        font-size: 15px;
+        color: #181717;
+        margin-bottom: 40px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ================= HEADER (FIXED TOP) ================= -->
+    <div id="header">
+      <strong>{{ invoice.business.name }}</strong><br />
+      {{ invoice.business.owner.email }}
+    </div>
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <p>
+      <strong>Invoice No:</strong> {{ invoice.invoice_no }}<br />
+      <strong>Date:</strong> {{ invoice.date }}<br />
+      <strong>Created:</strong> {{ invoice.created_at }}
+    </p>
+
+    <!-- BUSINESS & CUSTOMER -->
+    <div class="box">
+      <table>
+        <tr>
+          <td width="50%">
+            <strong>BUSINESS</strong><br />
+            {{ invoice.business.name }}
+          </td>
+          <td width="50%">
+            <strong>CUSTOMER</strong><br />
+            {{ invoice.customer.name }}<br />
+            {{ invoice.customer.phone }}<br />
+            {{ invoice.customer.email }}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ITEMS -->
+    <div class="box">
+      <strong>Invoice Items</strong>
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>UOM</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Line Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.product }}</td>
+            <td>{{ r.uom }}</td>
+            <td class="right">{{ r.qty }}</td>
+            <td class="right">{{ r.price }}</td>
+            <td class="right">{{ r.line }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PAYMENTS + SUMMARY -->
+    <div class="box">
+      <table>
+        <tr>
+          <td width="50%" valign="top">
+            <strong>Payments</strong><br /><br />
+
+            Status: {% if invoice.status == 'paid' %}
+            <span class="status paid">Paid</span>
+            {% elif invoice.status == 'partial' %}
+            <span class="status partial">Partial</span>
+            {% else %}
+            <span class="status pending">Pending</span>
+            {% endif %} {% if invoice.status != 'paid' %}
+            <br /><br />
+            <strong>Scan to Pay</strong><br />
+            <div style="text-align: center">
+              <img src="{{ qr_path }}" width="200" height="180" />
+            </div>
+            <small>UPI / QR Payment</small>
+            {% endif %}
+          </td>
+
+          <td width="50%" valign="top">
+            <strong>Summary</strong>
+            <table>
+              <tr>
+                <td>Subtotal (taxable) %</td>
+                <td class="right">{{ subtotal_taxable }}</td>
+              </tr>
+              <tr>
+                <td>Subtotal (exempt)</td>
+                <td class="right">{{ subtotal_exempt }}</td>
+              </tr>
+              <tr>
+                <td>CGST %</td>
+                <td class="right">{{ cgst_sum }}</td>
+              </tr>
+              <tr>
+                <td>SGST %</td>
+                <td class="right">{{ sgst_sum }}</td>
+              </tr>
+              <tr>
+                <td><strong>Total</strong></td>
+                <td class="right"><strong>{{ total_with_tax }}</strong></td>
+              </tr>
+              <tr>
+                <td>Paid</td>
+                <td class="right">{{ invoice.amount_paid }}</td>
+              </tr>
+              <tr>
+                <td>Remaining</td>
+                <td class="right">{{ invoice.remaining_amount }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ================= FOOTER (FIXED BOTTOM) ================= -->
+    <div id="footer">
+      <hr />
+      <strong>Thank you for your business!</strong><br />
+      This is a computer-generated invoice and does not require a signature.<br />
+      © {{ invoice.business.name }} | Generated on {{ invoice.created_at }}
+    </div>
+  </body>
+</html>

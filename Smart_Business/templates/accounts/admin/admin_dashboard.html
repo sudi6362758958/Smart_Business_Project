@@ -1,0 +1,572 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  Admin Dashboard
+{% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3>Admin Dashboard</h3>
+      <a href="{% url 'accounts:register_business' %}" class="btn btn-outline-secondary btn-sm">Register Business</a>
+    </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} small">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="mb-3">
+      <strong>Total:</strong> {{ total }} &nbsp; | &nbsp;
+      <strong>Pending:</strong> {{ pending_count }} &nbsp; | &nbsp;
+      <strong>Approved:</strong> {{ approved_count }}
+    </div>
+
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Business</th>
+            <th>Owner</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for business in businesses %}
+            {% with bid=business.pk|default:business.id %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  {% if bid %}
+                    <a href="{% url 'accounts:business_detail' bid %}">{{ business.name }}</a>
+                  {% else %}
+                    {{ business.name }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if business.owner_name %}
+                    {{ business.owner_name }}
+                  {% elif business.owner %}
+                    {{ business.owner.get_full_name|default:business.owner.username }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  {% if business.owner_email %}
+                    {{ business.owner_email }}
+                  {% elif business.email %}
+                    {{ business.email }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  {% if business.is_approved %}
+                    <span class="badge bg-success text-white">Approved</span>
+                  {% elif business.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                  {% else %}
+                    <span class="badge bg-secondary text-white">Rejected</span>
+                  {% endif %}
+                </td>
+                <td>{{ business.created_at|date:'Y-m-d H:i' }}</td>
+                <td class="text-end">
+                  {% if bid %}
+                    <a href="{% url 'accounts:business_detail' bid %}" class="btn btn-sm btn-outline-primary">View</a>
+                    <a href="{% url 'accounts:edit_business' bid %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+
+                    <form method="post" action="{% url 'accounts:delete_business' bid %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to permanently delete this business?');">Delete</button>
+                    </form>
+
+                    {% if business.status == 'pending' %}
+                      <form method="post" action="{% url 'accounts:approve_business' bid %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve business?');">Approve</button>
+                      </form>
+                      <form method="post" action="{% url 'accounts:reject_business' bid %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reject business?');">Reject</button>
+                      </form>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted small">No actions</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endwith %}
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center text-muted">No businesses found.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    .card-small {
+      padding: 0.75rem;
+    }
+    .small-muted {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+    .stat-box {
+      min-width: 160px;
+    }
+    .day-box {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .day-box .label {
+      font-size: 11px;
+      color: #6c757d;
+    }
+    .chart-wrap {
+      position: relative;
+    }
+    .day-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .day-grid .day-box {
+      flex: 1 1 calc(14.28% - 8px);
+    } /* 7 columns */
+    @media (max-width: 768px) {
+      .day-grid .day-box {
+        flex-basis: calc(50% - 8px);
+      }
+    }
+  </style>
+
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="m-0">Admin Dashboard</h3>
+      <div>
+        <a href="{% url 'accounts:export_csv' %}?from={{ filter_from }}&to={{ filter_to }}" class="btn btn-outline-primary btn-sm">Export CSV</a>
+        <a href="{% url 'accounts:export_pdf' %}?from={{ filter_from }}&to={{ filter_to }}" class="btn btn-outline-secondary btn-sm">Export PDF</a>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} small">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="card card-small stat-box">
+          <div class="small-muted">Today's Sales</div>
+          <div class="h5">₹ {{ totals.today.sales }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-small stat-box">
+          <div class="small-muted">Today's Purchases</div>
+          <div class="h5">₹ {{ totals.today.purchases }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-small stat-box">
+          <div class="small-muted">Today's Expenses</div>
+          <div class="h5">₹ {{ totals.today.expenses }}</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card card-small stat-box">
+          <div class="small-muted">Today's Profit</div>
+          <div class="h5 {% if profits.today < 0 %}
+              
+              
+              
+              
+              
+              
+              text-danger
+
+
+
+
+
+
+            {% else %}
+              
+              
+              
+              
+              
+              
+              text-success
+
+
+
+
+
+
+            {% endif %}">₹ {{ profits.today }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <form method="get" class="card-body d-flex gap-2 flex-wrap align-items-center">
+        <div class="me-auto small-muted">Filter (for exports):</div>
+        <div>
+          <input type="date" id="from_date" name="from" value="{{ filter_from }}" class="form-control form-control-sm" />
+        </div>
+        <div>
+          <input type="date" id="to_date" name="to" value="{{ filter_to }}" class="form-control form-control-sm" />
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary">Apply & Preview</button>
+        <div class="ms-2 small-muted">Last updated: {{ now|date:'Y-m-d H:i' }}</div>
+      </form>
+    </div>
+
+    <!-- WEEK chart -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="card-title mb-0">This Week (daily)</h5>
+          <div class="small-muted">Sales / Purchases / Expenses / Profit</div>
+        </div>
+
+        <div class="chart-wrap">
+          <canvas id="weekChart" height="140"></canvas>
+        </div>
+
+        <div class="day-grid mt-3">
+          {% for day in chart.days %}
+            <div class="day-box">
+              <div class="label">
+                <strong>{{ day.label }}</strong>
+              </div>
+              <div>Sales: ₹ {{ day.sales }}</div>
+              <div>Purch: ₹ {{ day.purchases }}</div>
+              <div>Exp: ₹ {{ day.expenses }}</div>
+              <div>
+                PL: <strong class="{% if day.profit < 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-danger
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-success
+
+
+
+
+
+
+                  {% endif %}">
+                  ₹ {{ day.profit }}
+                </strong>
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-muted small">No day data available.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTH chart -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="card-title mb-0">This Month (daywise)</h5>
+          <div class="small-muted">Up to today</div>
+        </div>
+
+        <div class="chart-wrap">
+          <canvas id="monthChart" height="140"></canvas>
+        </div>
+
+        <div class="day-grid mt-3">
+          {% for day in chart.month.days %}
+            <div class="day-box">
+              <div class="label">
+                <strong>{{ day.label }}</strong>
+              </div>
+              <div>Sales: ₹ {{ day.sales }}</div>
+              <div>Purch: ₹ {{ day.purchases }}</div>
+              <div>Exp: ₹ {{ day.expenses }}</div>
+              <div>
+                PL: <strong class="{% if day.profit < 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-danger
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-success
+
+
+
+
+
+
+                  {% endif %}">
+                  ₹ {{ day.profit }}
+                </strong>
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-muted small">No month data available.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Period compare and profit summary -->
+    <div class="row mb-4">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Period comparison</h5>
+            <canvas id="periodCompare" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Profit / Loss</h5>
+            <canvas id="profitChart" height="120"></canvas>
+            <div class="mt-3">
+              <div class="small-muted">
+                Today: <strong class="{% if profits.today < 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-danger
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-success
+
+
+
+
+
+
+                  {% endif %}">
+                  ₹ {{ profits.today }}
+                </strong>
+              </div>
+              <div class="small-muted">
+                Week: <strong class="{% if profits.week < 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-danger
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-success
+
+
+
+
+
+
+                  {% endif %}">
+                  ₹ {{ profits.week }}
+                </strong>
+              </div>
+              <div class="small-muted">
+                Month: <strong class="{% if profits.month < 0 %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-danger
+
+
+
+
+
+
+                  {% else %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    text-success
+
+
+
+
+
+
+                  {% endif %}">
+                  ₹ {{ profits.month }}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chart = JSON.parse('{{ chart_json|escapejs }}')
+    const totals = JSON.parse('{{ totals_json|escapejs }}')
+    const profits = JSON.parse('{{ profits_json|escapejs }}')
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    ;(function () {
+      // WEEK CHART (last 7 days)
+      const weekCtx = document.getElementById('weekChart').getContext('2d')
+      new Chart(weekCtx, {
+        type: 'line',
+        data: {
+          labels: chart.labels || [],
+          datasets: [
+            { label: 'Sales', data: chart.sales || [], fill: false, tension: 0.2 },
+            { label: 'Purchases', data: chart.purchases || [], fill: false, tension: 0.2 },
+            { label: 'Expenses', data: chart.expenses || [], fill: false, tension: 0.2 }
+          ]
+        },
+        options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+      })
+    
+      // MONTH CHART (daywise)
+      const monthCtx = document.getElementById('monthChart').getContext('2d')
+      new Chart(monthCtx, {
+        type: 'line',
+        data: {
+          labels: (chart.month && chart.month.labels) || [],
+          datasets: [
+            { label: 'Sales', data: (chart.month && chart.month.sales) || [], fill: false, tension: 0.2 },
+            { label: 'Purchases', data: (chart.month && chart.month.purchases) || [], fill: false, tension: 0.2 },
+            { label: 'Expenses', data: (chart.month && chart.month.expenses) || [], fill: false, tension: 0.2 }
+          ]
+        },
+        options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+      })
+    
+      // PERIOD COMPARE
+      const periodCtx = document.getElementById('periodCompare').getContext('2d')
+      const periodSales = [(totals.today && totals.today.sales) || 0, (totals.week && totals.week.sales) || 0, (totals.month && totals.month.sales) || 0]
+      const periodPurch = [(totals.today && totals.today.purchases) || 0, (totals.week && totals.week.purchases) || 0, (totals.month && totals.month.purchases) || 0]
+      const periodExp = [(totals.today && totals.today.expenses) || 0, (totals.week && totals.week.expenses) || 0, (totals.month && totals.month.expenses) || 0]
+      new Chart(periodCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Today', 'This Week', 'This Month'],
+          datasets: [
+            { label: 'Sales', data: periodSales },
+            { label: 'Purchases', data: periodPurch },
+            { label: 'Expenses', data: periodExp }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+      })
+    
+      // PROFIT CHART
+      const profitCtx = document.getElementById('profitChart').getContext('2d')
+      const profitData = [profits.today || 0, profits.week || 0, profits.month || 0]
+      new Chart(profitCtx, {
+        type: 'bar',
+        data: { labels: ['Today', 'Week', 'Month'], datasets: [{ label: 'Profit (₹)', data: profitData }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: {
+                callback: function (v) {
+                  return '₹' + v
+                }
+              }
+            }
+          }
+        }
+      })
+    })()
+  </script>
+{% endblock %}
